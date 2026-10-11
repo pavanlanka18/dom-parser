@@ -93,9 +93,48 @@ clang -Wall -Wextra -o domparser domparser.c
 
 ---
 
+## Phase 2 — Tokenizer: Break the HTML into Pieces ✅ COMPLETE
+
+**Objective:** Split the raw buffer into a stream of tokens — opening tags, closing tags, and text — and print each with its kind, one per line. Core insight: a parser first sees a stream of pieces, not a tree.
+
+### Files created/changed
+
+| File | Purpose |
+|---|---|
+| `nested.html` | Test file with nesting, siblings, and attributes |
+| `domparser.c` | Added `tokenize()` on top of Phase 1 file reading |
+
+### What the tokenizer implements
+
+| Component | What it does |
+|---|---|
+| `TokenKind` enum | `TOK_OPEN_TAG`, `TOK_CLOSE_TAG`, `TOK_TEXT` |
+| `tokenize(buf)` | Walks the buffer; `<` → scan to `>` (tag), else accumulate text until next `<` |
+| Tag classification | `<` + `/` → `TOK_CLOSE_TAG`, otherwise `TOK_OPEN_TAG` |
+| `is_all_whitespace` | Labels whitespace-only text as `TEXT(whitespace)` — the pieces later phases will ignore |
+| `print_escaped` | Escapes `\n`, `\t`, `\r` so every byte is visible and accounted for |
+| Whole-tag output | Attributes NOT split yet (Phase 3), e.g. `OPEN_TAG: <p class="intro" id="first">` |
+
+### Build & run
+
+```bash
+clang -Wall -Wextra -o domparser domparser.c
+./domparser nested.html
+```
+
+### Verified behavior
+
+- [x] Compiles with `clang -Wall -Wextra` — **zero warnings**
+- [x] `./domparser nested.html` → 19 tokens; concatenating all token contents reproduces the file byte-for-byte
+- [x] Every whitespace-only text piece visible in escaped form (`"\n    "` etc.)
+- [x] Adjacent tags (`</b></p>`) produce no spurious empty TEXT token
+- [x] Phase 1 error handling intact: no-arg → usage, missing file → perror, both exit 1
+
+---
+
 ## Upcoming Phases (planned, guided step by step)
 
-- [ ] Phase 2 — Tokenizer: split input into tags vs. text
+- [ ] Phase 3 — Tag parsing: attributes, self-closing tags
 - [ ] Phase 3 — Tag parsing: attributes, self-closing tags
 - [ ] Phase 4 — DOM tree building + error detection (mismatched/unclosed tags)
 - [ ] Phase 5 — Tree display (`tree`-style output), `--text`, search flags
